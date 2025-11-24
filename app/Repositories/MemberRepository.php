@@ -6,16 +6,59 @@ namespace App\Repositories;
 
 use App\Contracts\MemberRepositoryInterface;
 use App\DTO\MemberData;
+use App\DTO\MemberListFiltersData;
 use App\DTO\MemberTermData;
 use App\Models\Member;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MemberRepository implements MemberRepositoryInterface
 {
+    private const ALLOWED_SORT_COLUMNS = ['name', 'party_name', 'state', 'district', 'updated_date'];
+
     public function findByBioguideId(string $bioguideId): ?Member
     {
         return Member::where('bioguide_id', $bioguideId)->first();
+    }
+
+    public function findByBioguideIdWithTerms(string $bioguideId): ?Member
+    {
+        return Member::where('bioguide_id', $bioguideId)
+            ->with('terms')
+            ->first();
+    }
+
+    public function getFilteredMembers(MemberListFiltersData $filters): LengthAwarePaginator
+    {
+        $query = Member::query()->with('terms');
+
+        $this->applyFilters($query, $filters);
+        $this->applySorting($query, $filters);
+
+        return $query->paginate($filters->perPage)->withQueryString();
+    }
+
+    public function getDistinctParties(): Collection
+    {
+        return Member::query()
+            ->distinct()
+            ->whereNotNull('party_name')
+            ->pluck('party_name')
+            ->sort()
+            ->values();
+    }
+
+    public function getDistinctStates(): Collection
+    {
+        return Member::query()
+            ->distinct()
+            ->whereNotNull('state')
+            ->pluck('state')
+            ->sort()
+            ->values();
     }
 
     public function upsertMember(MemberData $memberData): Member
@@ -128,5 +171,49 @@ class MemberRepository implements MemberRepositoryInterface
             'bioguide_id' => $memberData->bioguideId,
             'terms_count' => $memberData->terms->count(),
         ]);
+    }
+
+    private function applyFilters(Builder $query, MemberListFiltersData $filters): void
+    {
+        if ($filters->name !== null) {
+            $this->applyNameFilter($query, $filters->name);
+        }
+
+        if ($filters->party !== null) {
+            $this->applyPartyFilter($query, $filters->party);
+        }
+
+        if ($filters->state !== null) {
+            $this->applyStateFilter($query, $filters->state);
+        }
+    }
+
+    private function applyNameFilter(Builder $query, string $name): void
+    {
+        $query->where('name', 'ilike', "%{$name}%");
+    }
+
+    private function applyPartyFilter(Builder $query, string $party): void
+    {
+        $query->where('party_name', $party);
+    }
+
+    private function applyStateFilter(Builder $query, string $state): void
+    {
+        $query->where('state', $state);
+    }
+
+    private function applySorting(Builder $query, MemberListFiltersData $filters): void
+    {
+        if ($this->isValidSortColumn($filters->sortBy)) {
+            $query->orderBy($filters->sortBy, $filters->sortDirection);
+        } else {
+            $query->orderBy('updated_date', 'desc');
+        }
+    }
+
+    private function isValidSortColumn(string $column): bool
+    {
+        return in_array($column, self::ALLOWED_SORT_COLUMNS, true);
     }
 }
