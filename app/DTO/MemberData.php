@@ -40,7 +40,11 @@ class MemberData extends Data
         }
 
         $termsData = array_map(
-            fn (array $term) => MemberTermData::from($term),
+            fn (array $term) => new MemberTermData(
+                chamber: $term['chamber'] ?? '',
+                startYear: $term['startYear'] ?? 0,
+                endYear: $term['endYear'] ?? null
+            ),
             $termsRaw
         );
 
