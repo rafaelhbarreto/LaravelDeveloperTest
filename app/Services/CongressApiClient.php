@@ -35,11 +35,16 @@ class CongressApiClient implements CongressApiClientInterface
     {
         $url = "{$this->baseUrl}/member";
 
-        $response = $this->makeRequest()->get($url, [
-            'api_key' => $this->apiKey,
-            'offset' => $offset,
-            'limit' => $limit,
-        ]);
+        try {
+            $response = $this->makeRequest()->get($url, [
+                'api_key' => $this->apiKey,
+                'offset' => $offset,
+                'limit' => $limit,
+            ]);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            $this->logFailedRequest($e->response, $url);
+            throw CongressApiException::requestFailed($e->response->status(), $url);
+        }
 
         $this->validateResponse($response, $url);
 
@@ -48,7 +53,12 @@ class CongressApiClient implements CongressApiClientInterface
 
     public function fetchMembersFromUrl(string $url): array
     {
-        $response = $this->makeRequest()->get($url);
+        try {
+            $response = $this->makeRequest()->get($url);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            $this->logFailedRequest($e->response, $url);
+            throw CongressApiException::requestFailed($e->response->status(), $url);
+        }
 
         $this->validateResponse($response, $url);
 
