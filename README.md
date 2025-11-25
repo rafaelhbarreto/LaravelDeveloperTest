@@ -13,18 +13,20 @@ This is an test application to read data from https://api.congress.gov, storage 
 
 ### Installation
 
-# note
+#### note
 
 ** I'm considering that in your terminal doesen't have the sail alias installed. **
 
 -   Clone the repository
 -   Install all composer packages
-    -   `./vendor/bin/sail composer install`
+    -   `composer install`
 -   Copy `.env.example` to `.env`
     -   `cp .env.example .env`
+-   Up the application
+    -   `./vendor/bin/sail up -d`
 -   Create an application key.
     -   In yout termninal type `./vendor/bin/sail artisan key:generate`
--   Set your `CONGRESS_API_KEY` from congress.gov on `.env`
+-   Set your `CONGRESS_API_KEY` from congress.gov on `.env` (Sing up on [https://api.congress.gov])
 -   Run migrations `./vendor/bin/sail artisan migrate`
 
 ### Importing data
@@ -36,7 +38,7 @@ This is an test application to read data from https://api.congress.gov, storage 
 
 ### Running the Application
 
--   Install the npm packages `./vendor/bin/sail npm run install`
+-   Install the npm packages `./vendor/bin/sail npm install`
 -   Build the assets `./vendor/bin/sail npm run build`
 -   Access [http://localhost/congress/members] URL
 -   Manipulate the view
